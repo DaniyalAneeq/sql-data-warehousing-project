@@ -35,7 +35,7 @@ This document defines the naming conventions used for schemas, tables, views, co
 The **Bronze layer** stores raw data ingested from source systems with minimal or no transformation.
 
 ### Pattern
-<sourcesystem>_<entity>
+## <sourcesystem>_<entity>
 
 ### Rules
 - Table names must begin with the **source system name**.
@@ -56,7 +56,7 @@ The **Bronze layer** stores raw data ingested from source systems with minimal o
 The **Silver layer** contains cleaned, standardized, and transformed data from the Bronze layer.
 
 ### Pattern
-<sourcesystem>_<entity>
+## <sourcesystem>_<entity>
 
 
 ### Rules
@@ -78,7 +78,7 @@ The **Silver layer** contains cleaned, standardized, and transformed data from t
 The **Gold layer** represents business-ready data models optimized for analytics and reporting.
 
 ### Pattern
-<category>_<entity>
+## <category>_<entity>
 
 
 ### Components
@@ -114,7 +114,7 @@ The **Gold layer** represents business-ready data models optimized for analytics
 All dimension tables must use **surrogate keys** as primary keys.
 
 ### Pattern
-<entity>_key
+## <entity>_key
 
 
 ### Rules
@@ -135,7 +135,7 @@ All dimension tables must use **surrogate keys** as primary keys.
 Technical or metadata columns store information related to data warehouse processing.
 
 ### Pattern
-dwh_<column_name>
+## dwh_<column_name>
 
 
 ### Rules
@@ -157,7 +157,7 @@ dwh_<column_name>
 Stored procedures used for loading or transforming data must follow a consistent naming pattern.
 
 ### Pattern
-load_<layer>
+## load_<layer>
 
 
 ### Rules
