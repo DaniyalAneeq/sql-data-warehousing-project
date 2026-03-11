@@ -36,7 +36,6 @@ The **Bronze layer** stores raw data ingested from source systems with minimal o
 
 ### Pattern
 ## <sourcesystem>_<entity>
-
 ### Rules
 - Table names must begin with the **source system name**.
 - Table names should match the **original source table name** whenever possible.
@@ -57,8 +56,6 @@ The **Silver layer** contains cleaned, standardized, and transformed data from t
 
 ### Pattern
 ## <sourcesystem>_<entity>
-
-
 ### Rules
 - Maintain the **source system prefix** for traceability.
 - Apply **data cleansing, normalization, and transformations**.
@@ -79,8 +76,6 @@ The **Gold layer** represents business-ready data models optimized for analytics
 
 ### Pattern
 ## <category>_<entity>
-
-
 ### Components
 
 - **`category`** → Indicates the table type (dimension, fact, report).
@@ -115,7 +110,6 @@ All dimension tables must use **surrogate keys** as primary keys.
 
 ### Pattern
 ## <entity>_key
-
 
 ### Rules
 - Surrogate keys must end with `_key`.
@@ -158,8 +152,6 @@ Stored procedures used for loading or transforming data must follow a consistent
 
 ### Pattern
 ## load_<layer>
-
-
 ### Rules
 - Stored procedures should clearly indicate the **layer they load**.
 - The name should reflect the **purpose of the pipeline step**.
