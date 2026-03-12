@@ -379,12 +379,24 @@ This project is open source and available under the [MIT License](LICENSE).
 ---
 ## 🙋 Author
 ## Author
-
-**Danial Aneeq**    
-AI & Data Engineer  
-- **GitHub:** [github.com/danialaneeq]  
-- **LinkedIn:** [linkedin.com/in/danialaneeq] 
-- **Email:** [daniyalaneeqahmed@gmail.com] 
-This project is my hands-on implementation of a full modern data warehouse using SQL Server — from raw ingestion to analytics-ready star schema.
+---
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/DaniylAneeq">
+        <img src="https://github.com/DaniylAneeq.png" width="100px;" alt="Danial Aneeq"/>
+        <br />
+        <sub><b>DANIAL ANEEQ AHMED</b></sub>
+      </a>
+    </td>
+  </tr>
+</table>
+**AI & Data Engineer** | SQL Server • Data Warehousing • ETL Design
+| | |
+|---|---|
+| 🐙 **GitHub** | [@danialaneeq](https://github.com/DaniylAneeq) |
+| 💼 **LinkedIn** | [linkedin.com/in/danialaneeq](https://linkedin.com/in/danialaneeq) |
+| 📧 **Email** | [daniyalaneeqahmed@gmail.com](mailto:daniyalaneeqahmed@gmail.com) |
+> This project is my hands-on implementation of a full modern data warehouse using SQL Server — from raw ingestion to analytics-ready star schema.
 ---
 > *Built with pure T-SQL on Microsoft SQL Server — no external dependencies required.*
