@@ -378,25 +378,30 @@ SELECT TOP 10 * FROM gold.fact_sales;
 This project is open source and available under the [MIT License](LICENSE).
 ---
 ## 🙋 Author
-## Author
+
+### **Danial Aneeq Ahmed**
+**AI & Data Engineer**  
+*SQL Server • Data Warehousing • ETL Design*
+
 ---
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://github.com/DaniylAneeq">
-        <img src="https://avatars.githubusercontent.com/u/167881750?s=400&u=3524972ce077574cb53b4b365125a4bc23144785&v=4" width="100px;" alt="Danial Aneeq"/>
-        <br />
-        <sub><b>DANIAL ANEEQ AHMED</b></sub>
-      </a>
-    </td>
-  </tr>
-</table>
-**AI & Data Engineer** | SQL Server • Data Warehousing • ETL Design
-| | |
-|---|---|
-| 🐙 **GitHub** | [@danialaneeq](https://github.com/DaniylAneeq) |
+
+### 🔗 Connect with Me
+
+| Platform | Link |
+|--------|------|
+| 🐙 **GitHub** | [@DaniylAneeq](https://github.com/DaniylAneeq) |
 | 💼 **LinkedIn** | [linkedin.com/in/danialaneeq](https://linkedin.com/in/danialaneeq) |
 | 📧 **Email** | [daniyalaneeqahmed@gmail.com](mailto:daniyalaneeqahmed@gmail.com) |
-> This project is my hands-on implementation of a full modern data warehouse using SQL Server — from raw ingestion to analytics-ready star schema.
+
 ---
-> *Built with pure T-SQL on Microsoft SQL Server — no external dependencies required.*
+
+### 💡 About This Project
+
+This project is my **hands-on implementation of a modern data warehouse using Microsoft SQL Server** — covering the complete pipeline from:
+
+- **Raw data ingestion**
+- **ETL transformations**
+- **Dimensional modeling**
+- **Analytics-ready star schema**
+
+> Built with **pure T-SQL on Microsoft SQL Server** — no external dependencies required.
