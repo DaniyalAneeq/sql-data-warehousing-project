@@ -384,7 +384,7 @@ This project is open source and available under the [MIT License](LICENSE).
   <tr>
     <td align="center">
       <a href="https://github.com/DaniylAneeq">
-        <img src="https://github.com/DaniylAneeq.png" width="100px;" alt="Danial Aneeq"/>
+        <img src="[https://github.com/DaniylAneeq.png](https://avatars.githubusercontent.com/u/167881750?s=400&u=3524972ce077574cb53b4b365125a4bc23144785&v=4)" width="100px;" alt="Danial Aneeq"/>
         <br />
         <sub><b>DANIAL ANEEQ AHMED</b></sub>
       </a>
