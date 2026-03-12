@@ -1,0 +1,141 @@
+/*
+================================================================================
+SILVER LAYER - TRANSFORMATION & LOAD (ERP Customer AZ12)
+================================================================================
+
+Script Purpose:
+    Cleanses, standardizes, and loads customer data from bronze.erp_cust_az12 
+    into silver.erp_cust_az12.
+
+    Main transformations applied:
+    - Clean customer ID: remove 'NAS' prefix if present (likely legacy/test marker)
+    - Invalidate future birth dates (bdate > current date → NULL)
+    - Standardize gender values to 'Male' / 'Female' / 'n/a'
+    - Basic out-of-range date detection (very old birth dates)
+
+Business Rules:
+    - 'NAS' prefix removal → assumes real customer IDs don't start with NAS
+    - Birth date cannot be in the future
+    - Reasonable minimum birth year ~1924 (arbitrary but common in DQ rules)
+    - Gender mapping is case-insensitive and tolerant of variations
+
+Execution Flow:
+    1. Quality checks & diagnostics (post-load or pre-load)
+    2. Preview of transformed data
+    3. Final INSERT with cleaning logic
+
+Recommendations:
+    - TRUNCATE silver.erp_cust_az12; before running INSERT (full refresh)
+    - Consider adding age calculation or age-band in gold layer instead of here
+    - If 'NAS%' prefix appears frequently → investigate source system
+
+Last updated: March 2026
+================================================================================
+*/
+
+
+-- =============================================================================
+-- 1. QUALITY CHECKS & DIAGNOSTICS (run after INSERT or as separate validation)
+-- =============================================================================
+
+-- Out-of-range / suspicious birth dates
+-- Very old people or future dates (future already set to NULL during load)
+SELECT DISTINCT
+    bdate,
+    COUNT(*) AS record_count
+FROM silver.erp_cust_az12
+WHERE bdate < '1924-01-01'
+   OR bdate > GETDATE()
+GROUP BY bdate
+ORDER BY bdate;
+
+
+-- Gender value distribution (after standardization)
+SELECT 
+    gen,
+    COUNT(*) AS count,
+    COUNT(*) * 100.0 / SUM(COUNT(*)) OVER () AS percentage
+FROM silver.erp_cust_az12
+GROUP BY gen
+ORDER BY count DESC;
+
+
+-- Check for any remaining invalid / unexpected gender values
+SELECT DISTINCT gen
+FROM silver.erp_cust_az12
+WHERE gen NOT IN ('Male', 'Female', 'n/a');
+
+
+-- Quick sample of cleaned data
+SELECT TOP 20
+    cid,
+    bdate,
+    gen,
+    DATEDIFF(YEAR, bdate, GETDATE()) AS approximate_age
+FROM silver.erp_cust_az12
+ORDER BY bdate DESC;
+
+
+-- =============================================================================
+-- 2. PREVIEW – what the cleaned data would look like
+-- =============================================================================
+
+SELECT
+    -- Clean customer ID: remove 'NAS' prefix if present
+    CASE 
+        WHEN cid LIKE 'NAS%' THEN SUBSTRING(cid, 4, LEN(cid))
+        ELSE cid 
+    END AS cleaned_cid,
+
+    -- Invalidate future birth dates
+    CASE 
+        WHEN bdate > GETDATE() THEN NULL
+        ELSE bdate 
+    END AS cleaned_bdate,
+
+    -- Standardize gender
+    CASE 
+        WHEN UPPER(TRIM(gen)) IN ('F', 'FEMALE', 'WOMAN', 'GIRL')   THEN 'Female'
+        WHEN UPPER(TRIM(gen)) IN ('M', 'MALE', 'MAN', 'BOY')        THEN 'Male'
+        ELSE 'n/a'
+    END AS cleaned_gen,
+
+    gen AS original_gen   -- for comparison
+
+FROM bronze.erp_cust_az12
+ORDER BY cid;
+
+
+-- =============================================================================
+-- 3. FINAL INSERT – load cleaned & standardized data into silver
+-- =============================================================================
+
+-- Recommended: TRUNCATE silver.erp_cust_az12; first if full refresh
+
+INSERT INTO silver.erp_cust_az12 (
+    cid,
+    bdate,
+    gen
+    -- dwh_create_date filled automatically via DEFAULT GETDATE()
+)
+SELECT
+    -- Clean customer ID: remove 'NAS' prefix if it exists
+    CASE 
+        WHEN cid LIKE 'NAS%' THEN SUBSTRING(cid, 4, LEN(cid))
+        ELSE cid 
+    END AS cid,
+
+    -- Prevent future birth dates (logical impossibility)
+    CASE 
+        WHEN bdate > GETDATE() THEN NULL
+        ELSE bdate 
+    END AS bdate,
+
+    -- Gender standardization (case-insensitive, tolerant of common variants)
+    CASE 
+        WHEN UPPER(TRIM(gen)) IN ('F', 'FEMALE', 'W', 'WOMAN', 'GIRL')  THEN 'Female'
+        WHEN UPPER(TRIM(gen)) IN ('M', 'MALE', 'MAN', 'BOY')           THEN 'Male'
+        ELSE 'n/a'
+    END AS gen
+
+FROM bronze.erp_cust_az12;
