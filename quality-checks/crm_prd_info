@@ -1,0 +1,161 @@
+/*
+================================================================================
+SILVER LAYER - TRANSFORMATION & LOAD (CRM Product Information)
+================================================================================
+
+Script Purpose:
+    Cleanses, standardizes, enriches and loads data from bronze.crm_prd_info 
+    into silver.crm_prd_info.
+
+    Main transformations applied:
+    - Extract category ID from product key (first 5 chars before '-', replace '-' → '_')
+    - Split product key into meaningful parts
+    - Handle NULL costs → replace with 0
+    - Normalize product line codes → full descriptive names
+    - Convert datetime → date
+    - Enrich: Calculate effective end date using LEAD() 
+      (makes product validity periods explicit and non-overlapping)
+    - Keep only one record per prd_id (assumes prd_id is unique PK)
+
+Key Business Rules:
+    - Product keys look like: 'MT-1234-ABC' → cat_id = 'MT_1234', prd_key = 'ABC'
+    - Product line mapping: M→Mountain, R→Road, S→Other Sales, T→Touring
+    - End date enrichment assumes records are ordered by start date and periods are contiguous
+
+Typical usage:
+    - Run quality checks first (should return 0 rows / expected patterns)
+    - Preview cleaned data
+    - Then execute the INSERT (after TRUNCATE silver table if full refresh)
+
+Last updated: March 2026
+================================================================================
+*/
+
+
+-- =============================================================================
+-- 1. DATA QUALITY CHECKS – should ideally return 0 problematic rows
+-- =============================================================================
+
+-- Check for duplicate or NULL primary keys
+-- Expectation: 0 rows
+SELECT
+    prd_id,
+    COUNT(*) AS cnt
+FROM bronze.crm_prd_info
+GROUP BY prd_id
+HAVING COUNT(*) > 1 OR prd_id IS NULL;
+
+
+-- Check for unwanted spaces in product name
+-- Expectation: 0 rows
+SELECT prd_nm
+FROM bronze.crm_prd_info
+WHERE prd_nm != TRIM(prd_nm);
+
+
+-- Check for negative or NULL costs
+-- Expectation: 0 rows (or review business rule)
+SELECT prd_cost
+FROM bronze.crm_prd_info
+WHERE prd_cost < 0 OR prd_cost IS NULL;
+
+
+-- Show distinct product lines (helps validate mapping)
+SELECT DISTINCT prd_line
+FROM bronze.crm_prd_info;
+
+
+-- Preview overlapping / validity period issues for specific products
+-- Useful for debugging end-date logic
+SELECT
+    prd_id,
+    prd_key,
+    prd_nm,
+    prd_start_dt,
+    prd_end_dt,
+    LEAD(prd_start_dt) OVER (PARTITION BY prd_key ORDER BY prd_start_dt) AS next_start,
+    DATEADD(DAY, -1, LEAD(prd_start_dt) OVER (PARTITION BY prd_key ORDER BY prd_start_dt)) AS calculated_end
+FROM bronze.crm_prd_info
+WHERE prd_key IN ('AC-HE-HL-U509-R', 'AC-HE-HL-U509')
+ORDER BY prd_key, prd_start_dt;
+
+
+-- =============================================================================
+-- 2. PREVIEW – cleaned & enriched version (run before INSERT)
+-- =============================================================================
+
+SELECT
+    prd_id,
+    REPLACE(SUBSTRING(prd_key, 1, 5), '-', '_')          AS cat_id,              -- extracted category
+    SUBSTRING(prd_key, 7, LEN(prd_key))                  AS prd_key,             -- cleaned product identifier
+    prd_nm,
+    COALESCE(prd_cost, 0)                                AS prd_cost,
+    CASE 
+        WHEN UPPER(TRIM(prd_line)) = 'M' THEN 'Mountain'
+        WHEN UPPER(TRIM(prd_line)) = 'R' THEN 'Road'
+        WHEN UPPER(TRIM(prd_line)) = 'S' THEN 'Other Sales'
+        WHEN UPPER(TRIM(prd_line)) = 'T' THEN 'Touring'
+        ELSE 'n/a'
+    END                                                  AS prd_line,
+    CAST(prd_start_dt AS DATE)                           AS prd_start_dt,
+    CAST(
+        LEAD(prd_start_dt) OVER (PARTITION BY prd_key ORDER BY prd_start_dt) - 1
+        AS DATE
+    )                                                    AS prd_end_dt           -- enriched validity end date
+FROM bronze.crm_prd_info
+ORDER BY prd_key, prd_start_dt;
+
+
+-- =============================================================================
+-- 3. FINAL INSERT – load cleaned + enriched data into silver
+-- =============================================================================
+
+-- (Recommended: TRUNCATE silver.crm_prd_info; first if doing full refresh)
+
+INSERT INTO silver.crm_prd_info (
+    prd_id,
+    cat_id,
+    prd_key,
+    prd_nm,
+    prd_cost,
+    prd_line,
+    prd_start_dt,
+    prd_end_dt
+    -- dwh_create_date filled automatically via DEFAULT
+)
+SELECT
+    prd_id,
+
+    -- Extract category ID from product key (e.g. 'MT-123' → 'MT_123')
+    REPLACE(SUBSTRING(prd_key, 1, 5), '-', '_')          AS cat_id,
+
+    -- Extract remaining part as the actual product code
+    SUBSTRING(prd_key, 7, LEN(prd_key))                  AS prd_key,
+
+    -- Product name (can be trimmed if needed in future)
+    prd_nm,
+
+    -- Replace NULL cost with 0 (business rule)
+    COALESCE(prd_cost, 0)                                AS prd_cost,
+
+    -- Normalize product line codes to readable names
+    CASE 
+        WHEN UPPER(TRIM(prd_line)) = 'M' THEN 'Mountain'
+        WHEN UPPER(TRIM(prd_line)) = 'R' THEN 'Road'
+        WHEN UPPER(TRIM(prd_line)) = 'S' THEN 'Other Sales'
+        WHEN UPPER(TRIM(prd_line)) = 'T' THEN 'Touring'
+        ELSE 'n/a'
+    END                                                  AS prd_line,
+
+    -- Standardize to DATE type
+    CAST(prd_start_dt AS DATE)                           AS prd_start_dt,
+
+    -- Enrich: calculate end date as one day before next product's start
+    -- If last record for a prd_key → remains NULL (or can be set to '9999-12-31')
+    CAST(
+        LEAD(prd_start_dt) OVER (PARTITION BY prd_key ORDER BY prd_start_dt) - 1
+        AS DATE
+    )                                                    AS prd_end_dt
+
+FROM bronze.crm_prd_info
+ORDER BY prd_key, prd_start_dt;
