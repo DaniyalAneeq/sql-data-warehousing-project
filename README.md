@@ -389,8 +389,8 @@ This project is open source and available under the [MIT License](LICENSE).
 
 | Platform | Link |
 |--------|------|
-| 🐙 **GitHub** | [@DaniylAneeq](https://github.com/DaniylAneeq) |
-| 💼 **LinkedIn** | [linkedin.com/in/danialaneeq](https://linkedin.com/in/danialaneeq) |
+| 🐙 **GitHub** | [[(https://github.com/DaniylAneeq)](https://github.com/DaniyalAneeq) |
+| 💼 **LinkedIn** | [[linkedin.com/in/danialaneeq](https://linkedin.com/in/danialaneeq)](https://www.linkedin.com/in/daniyalaneeq/) |
 | 📧 **Email** | [daniyalaneeqahmed@gmail.com](mailto:daniyalaneeqahmed@gmail.com) |
 
 ---
