@@ -1,0 +1,137 @@
+/*
+================================================================================
+SILVER LAYER - TRANSFORMATION & LOAD (ERP Location / Country Mapping - A101)
+================================================================================
+
+Script Purpose:
+    Cleanses and standardizes country/location mapping data from 
+    bronze.erp_loc_a101 into silver.erp_loc_a101.
+
+    Main transformations applied:
+    - Remove hyphens/dashes from customer/location IDs (cid)
+    - Standardize country codes/names:
+      - 'DE' → 'Germany'
+      - 'US' / 'USA' → 'United States'
+      - Empty string or NULL → 'n/a'
+      - All other values → TRIMmed but kept as-is
+    - Basic quality checks for country value distribution
+
+Business Rules:
+    - cid appears to contain legacy separators (e.g. 'C-123' → 'C123')
+    - Country field contains short codes or names with inconsistencies
+    - Goal: create a clean, consistent reference table for joining/enrichment
+    - No deduplication logic added (assumes cid is unique or will be handled in gold)
+
+Execution Flow:
+    1. Quality checks & value distribution review
+    2. Preview of standardized data
+    3. Final INSERT with cleaning rules applied
+
+Recommendations:
+    - TRUNCATE silver.erp_loc_a101; before INSERT (full refresh)
+    - In production: consider mapping to ISO 3166-1 alpha-2/alpha-3 codes
+    - Validate that no important countries are being missed in the CASE logic
+
+Last updated: March 2026
+================================================================================
+*/
+
+
+-- =============================================================================
+-- 1. QUALITY CHECKS & DIAGNOSTICS
+-- =============================================================================
+
+-- Show original vs standardized country values (distribution)
+SELECT DISTINCT
+    cntry AS original_cntry,
+    CASE 
+        WHEN TRIM(cntry) = 'DE'                  THEN 'Germany'
+        WHEN TRIM(cntry) IN ('US', 'USA')        THEN 'United States'
+        WHEN TRIM(cntry) = '' OR cntry IS NULL   THEN 'n/a'
+        ELSE TRIM(cntry)
+    END AS standardized_cntry,
+    COUNT(*) AS record_count
+FROM bronze.erp_loc_a101
+GROUP BY cntry
+ORDER BY standardized_cntry, record_count DESC;
+
+
+-- Check for unwanted spaces in country names
+-- Expectation: 0 rows if data is already clean
+SELECT *
+FROM bronze.erp_loc_a101
+WHERE cntry != TRIM(cntry)
+   OR cntry LIKE '% %';   -- also catch internal spaces if relevant
+
+
+-- Check for suspicious / malformed customer IDs (e.g. too short, only separators)
+SELECT cid
+FROM bronze.erp_loc_a101
+WHERE LEN(REPLACE(cid, '-', '')) < 3
+   OR cid IS NULL
+   OR cid = ''
+   OR cid LIKE '%[^A-Za-z0-9-]%';  -- non-alphanumeric except hyphen
+
+
+-- Preview cleaned customer IDs
+SELECT DISTINCT
+    cid AS original_cid,
+    REPLACE(cid, '-', '') AS cleaned_cid
+FROM bronze.erp_loc_a101
+WHERE cid LIKE '%-%'
+ORDER BY cleaned_cid;
+
+
+-- =============================================================================
+-- 2. PREVIEW – cleaned & standardized version
+-- =============================================================================
+
+SELECT
+    -- Clean customer/location ID: remove hyphens
+    REPLACE(cid, '-', '') AS cleaned_cid,
+
+    -- Standardize country
+    CASE 
+        WHEN TRIM(cntry) = 'DE'                  THEN 'Germany'
+        WHEN TRIM(cntry) IN ('US', 'USA', 'U.S.A.', 'United States') 
+                                                 THEN 'United States'
+        WHEN TRIM(cntry) IN ('', 'N/A', 'na', 'unknown') 
+          OR cntry IS NULL                       THEN 'n/a'
+        ELSE TRIM(cntry)
+    END AS cleaned_cntry,
+
+    -- original values for comparison
+    cid   AS original_cid,
+    cntry AS original_cntry
+
+FROM bronze.erp_loc_a101
+ORDER BY cleaned_cid;
+
+-- =============================================================================
+-- 3. FINAL INSERT – load cleaned & standardized data into silver
+-- =============================================================================
+
+-- Recommended: TRUNCATE silver.erp_loc_a101; first if full refresh
+
+INSERT INTO silver.erp_loc_a101 (
+    cid,
+    cntry
+    -- dwh_create_date filled automatically via DEFAULT GETDATE()
+)
+SELECT
+    -- Remove hyphens from customer/location ID
+    REPLACE(cid, '-', '') AS cid,
+
+    -- Country standardization & cleanup
+    CASE 
+        WHEN TRIM(cntry) = 'DE'                  THEN 'Germany'
+        WHEN TRIM(cntry) IN ('US', 'USA', 'U.S.A.') 
+                                                 THEN 'United States'
+        WHEN TRIM(cntry) = '' 
+          OR cntry IS NULL 
+          OR UPPER(TRIM(cntry)) IN ('N/A', 'UNKNOWN', 'NA') 
+                                                 THEN 'n/a'
+        ELSE TRIM(cntry)
+    END AS cntry
+
+FROM bronze.erp_loc_a101;
