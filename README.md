@@ -3,6 +3,7 @@
 [![Architecture](https://img.shields.io/badge/Architecture-Medallion%20(Bronze%20→%20Silver%20→%20Gold)-FFD700)](https://docs.databricks.com/en/lakehouse/medallion.html)
 [![Schema](https://img.shields.io/badge/Data%20Model-Star%20Schema-4CAF50)](https://en.wikipedia.org/wiki/Star_schema)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
+
 An end-to-end **SQL Data Warehouse** built on Microsoft SQL Server, implementing the **Medallion Architecture** (Bronze → Silver → Gold) with full ETL pipelines, data quality checks, and a star schema presentation layer ready for BI consumption.
 ---
 ## 📑 Table of Contents
