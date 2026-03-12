@@ -378,7 +378,13 @@ SELECT TOP 10 * FROM gold.fact_sales;
 This project is open source and available under the [MIT License](LICENSE).
 ---
 ## 🙋 Author
-**Daniyal Aneeq**
-- GitHub: [@DaniyalAneeq](https://github.com/DaniyalAneeq)
+## Author
+
+**Danial Aneeq**    
+AI & Data Engineer  
+- **GitHub:** [@danialaneeq] (replace with your actual username)  
+- **LinkedIn:** [linkedin.com/in/danialaneeq] (add link if you want)  
+- **Email:** [daniyalaneeqahmed@gmail.com] (optional – only if you're comfortable sharing)
+This project is my hands-on implementation of a full modern data warehouse using SQL Server — from raw ingestion to analytics-ready star schema.
 ---
 > *Built with pure T-SQL on Microsoft SQL Server — no external dependencies required.*
