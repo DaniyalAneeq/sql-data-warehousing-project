@@ -1,0 +1,117 @@
+/*
+================================================================================
+SILVER LAYER - TRANSFORMATION & LOAD (ERP Product Category Hierarchy g1v2)
+================================================================================
+
+Script Purpose:
+    Loads and lightly cleanses product category hierarchy data from 
+    bronze.erp_px_cat_g1v2 into silver.erp_px_cat_g1v2.
+
+    Transformations applied:
+    - TRIM() on all string columns (cat, subcat, maintenance) to remove 
+      leading/trailing spaces
+    - No major standardization or mapping needed (data appears already clean)
+    - Basic quality checks for unwanted spaces and value distribution
+    - Simple pass-through load with trimming
+
+Business Rules / Assumptions:
+    - This table contains reference data (category → subcategory → maintenance flag)
+    - IDs are assumed to be unique (no deduplication logic added here)
+    - No date fields or complex logic required
+    - Maintenance column likely acts as a flag or group (e.g. 'Yes'/'No', 'Retail', etc.)
+
+Execution Flow:
+    1. Quality checks (look for spaces or unexpected values)
+    2. Preview of trimmed data
+    3. Final INSERT with TRIM applied
+
+Recommendations:
+    - TRUNCATE silver.erp_px_cat_g1v2; before INSERT (full refresh)
+    - Consider adding DISTINCT or hierarchy validation in gold layer
+    - If maintenance has inconsistent values (Yes/No/Y/N/etc.), add CASE mapping later
+
+Last updated: March 2026
+================================================================================
+*/
+
+
+-- =============================================================================
+-- 1. QUALITY CHECKS & DIAGNOSTICS
+-- =============================================================================
+
+-- Check for leading/trailing spaces in any string column
+-- Expectation: 0 rows in a clean dataset
+SELECT *
+FROM bronze.erp_px_cat_g1v2
+WHERE cat       != TRIM(cat)
+   OR subcat    != TRIM(subcat)
+   OR maintenance != TRIM(maintenance);
+
+
+-- Show distribution of subcategories (helps understand hierarchy)
+SELECT 
+    subcat,
+    COUNT(*) AS record_count,
+    COUNT(DISTINCT id) AS unique_ids
+FROM bronze.erp_px_cat_g1v2
+GROUP BY subcat
+ORDER BY record_count DESC;
+
+
+-- Show distribution of maintenance values (flag or category group?)
+SELECT 
+    maintenance,
+    COUNT(*) AS count,
+    COUNT(*) * 100.0 / SUM(COUNT(*)) OVER () AS percentage
+FROM bronze.erp_px_cat_g1v2
+GROUP BY maintenance
+ORDER BY count DESC;
+
+
+-- Check for duplicate IDs (if id should be unique PK)
+SELECT 
+    id,
+    COUNT(*) AS duplicate_count
+FROM bronze.erp_px_cat_g1v2
+GROUP BY id
+HAVING COUNT(*) > 1;
+
+
+-- =============================================================================
+-- 2. PREVIEW – cleaned version with TRIM applied
+-- =============================================================================
+
+SELECT
+    id,
+    TRIM(cat)          AS cat_cleaned,
+    TRIM(subcat)       AS subcat_cleaned,
+    TRIM(maintenance)  AS maintenance_cleaned,
+    
+    -- original values for comparison
+    cat           AS cat_original,
+    subcat        AS subcat_original,
+    maintenance   AS maintenance_original
+
+FROM bronze.erp_px_cat_g1v2
+ORDER BY id;
+
+
+-- =============================================================================
+-- 3. FINAL INSERT – load trimmed & cleaned data into silver
+-- =============================================================================
+
+-- Recommended: TRUNCATE silver.erp_px_cat_g1v2; first if full refresh
+
+INSERT INTO silver.erp_px_cat_g1v2 (
+    id,
+    cat,
+    subcat,
+    maintenance
+    -- dwh_create_date filled automatically via DEFAULT GETDATE()
+)
+SELECT
+    id,
+    TRIM(cat)          AS cat,
+    TRIM(subcat)       AS subcat,
+    TRIM(maintenance)  AS maintenance
+FROM bronze.erp_px_cat_g1v2;
